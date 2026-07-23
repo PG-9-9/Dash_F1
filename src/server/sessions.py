@@ -24,10 +24,12 @@ WEEKEND_SESSIONS = {
 
 
 def session_display_name(session_type: str) -> str:
+    """Convert a FastF1 session code into the dashboard label."""
     return SESSION_NAMES.get(session_type.upper(), session_type)
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
+    """Convert catalog values to rounded integers with fallback."""
     try:
         return int(round(float(value)))
     except (TypeError, ValueError):
@@ -35,6 +37,7 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 
 def _json_safe(value: Any) -> Any:
+    """Convert FastF1 schedule values into strict JSON-safe structures."""
     if value is None or isinstance(value, (str, bool, int, float)):
         return value
     if isinstance(value, dict):

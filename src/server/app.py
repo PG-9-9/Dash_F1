@@ -26,6 +26,7 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 @dataclass(frozen=True)
 class ServerConfig:
+    """Startup session selection and replay behavior for server mode."""
     year: int
     round_number: int
     session_type: str = "R"
@@ -39,13 +40,16 @@ def create_app(
     dataset_loader: Callable[..., ReplayDataset] = load_fastf1_dataset,
     catalog_loader: Callable[[int], dict[str, Any]] = load_event_catalog,
 ) -> FastAPI:
+    """Build the FastAPI dashboard app and wire replay loading, APIs, and websocket streaming."""
     replay = controller or HeadlessReplayController()
     background_tasks: list[asyncio.Task] = []
     session_load_task: asyncio.Task | None = None
 
     async def load_session(year: int, round_number: int, session_type: str, refresh: bool, autoplay: bool) -> None:
+        """Load a requested FastF1 dataset in the background and publish progress to replay state."""
         try:
             def progress_callback(progress: float, message: str) -> None:
+                """Forward dataset-loader progress messages to the replay controller."""
                 replay.set_loading_progress(progress, message)
             dataset = await asyncio.to_thread(
                 _load_dataset_with_progress,
@@ -67,6 +71,7 @@ def create_app(
         refresh: bool = False,
         autoplay: bool = True,
     ) -> asyncio.Task:
+        """Start one guarded background session load and mark replay state as loading."""
         nonlocal session_load_task
         if session_load_task is not None and not session_load_task.done():
             raise RuntimeError("Another race session is already loading")
@@ -78,6 +83,7 @@ def create_app(
         return session_load_task
 
     async def replay_clock() -> None:
+        """Advance the replay controller on a fixed asynchronous server tick."""
         previous = time.monotonic()
         while True:
             await asyncio.sleep(0.04)
@@ -87,6 +93,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        """Start replay ticking and optional initial session loading for the FastAPI process."""
         background_tasks.append(asyncio.create_task(replay_clock()))
         if config is not None and not replay.loaded:
             schedule_session(
@@ -114,10 +121,12 @@ def create_app(
 
     @app.get("/", include_in_schema=False)
     async def dashboard():
+        """Serve the single-page dashboard shell."""
         return FileResponse(STATIC_DIR / "index.html")
 
     @app.get("/api/health")
     async def health():
+        """Expose readiness, loading progress, and last load error for deployment checks."""
         state = replay.core_state()
         return {
             "status": "loading" if state.get("loading") else "ready" if state.get("ready") else "error",
@@ -129,6 +138,7 @@ def create_app(
 
     @app.get("/api/catalog")
     async def catalog(year: int = Query(ge=1950, le=2100)):
+        """Return the race calendar and available session types for a selected year."""
         try:
             return await asyncio.to_thread(catalog_loader, year)
         except Exception as exc:
@@ -136,6 +146,7 @@ def create_app(
 
     @app.post("/api/session")
     async def change_session(request: dict[str, Any]):
+        """Validate a session-load request and schedule telemetry preparation."""
         try:
             year = int(request.get("year", 0))
             round_number = int(request.get("round_number", 0))
@@ -162,10 +173,12 @@ def create_app(
 
     @app.get("/api/bootstrap")
     async def bootstrap():
+        """Return static replay metadata needed by the dashboard after load."""
         return replay.bootstrap()
 
     @app.get("/api/state")
     async def state():
+        """Return the latest lightweight replay state snapshot."""
         return replay.core_state()
 
     @app.get("/api/analyses")
@@ -174,12 +187,14 @@ def create_app(
         comparison: str = Query(default="", max_length=10),
         risk: float = Query(default=0.5, ge=0.0, le=1.0),
     ):
+        """Return current intelligence bundle for selected drivers and risk setting."""
         if not replay.loaded or replay.loading:
             raise HTTPException(status_code=503, detail="Replay session is still loading")
         return replay.analyses(primary, comparison, risk)
 
     @app.post("/api/control")
     async def control(command: dict[str, Any]):
+        """Apply playback, seek, speed, or step commands to the replay."""
         action = str(command.get("action", ""))
         try:
             return replay.control(action, command.get("value"))
@@ -195,6 +210,7 @@ def create_app(
         comparison: str = "",
         risk: float = 0.5,
     ):
+        """Stream replay state and periodic analyses to connected dashboard clients."""
         await websocket.accept()
         counter = 0
         try:
@@ -221,6 +237,7 @@ def _load_dataset_with_progress(
     refresh: bool,
     progress_callback: Callable[[float, str], None],
 ) -> ReplayDataset:
+    """Call dataset loaders with progress support while preserving older loader signatures."""
     parameters = inspect.signature(dataset_loader).parameters
     accepts_progress = any(
         parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD) or name == "progress_callback"
@@ -245,6 +262,7 @@ def run_server(
     refresh: bool = False,
     autoplay: bool = True,
 ) -> None:
+    """Launch the dashboard through Uvicorn with the selected startup session."""
     import uvicorn
 
     config = ServerConfig(year, round_number, session_type, refresh, autoplay)
@@ -252,6 +270,7 @@ def run_server(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Create the server-mode command-line parser and environment defaults."""
     parser = argparse.ArgumentParser(description="Run F1 Race Replay as a headless web dashboard")
     parser.add_argument("--year", type=int, default=int(os.getenv("F1_YEAR", "2025")))
     parser.add_argument("--round", dest="round_number", type=int, default=int(os.getenv("F1_ROUND", "12")))
@@ -264,6 +283,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse CLI arguments and start the server-mode dashboard."""
     args = build_parser().parse_args(argv)
     run_server(
         year=args.year,

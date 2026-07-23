@@ -21,6 +21,7 @@ from src.lib.tyres import get_tyre_compound_str
 
 @dataclass
 class AnalysisResult:
+    """Serializable analysis block consumed by dashboard summaries, tables, and charts."""
     title: str
     summary: str
     columns: list[str]
@@ -29,6 +30,7 @@ class AnalysisResult:
 
 
 def _number(value: Any, default: float = 0.0) -> float:
+    """Convert mixed telemetry values to finite floats for intelligence calculations."""
     try:
         result = float(value)
         return result if math.isfinite(result) else default
@@ -37,6 +39,7 @@ def _number(value: Any, default: float = 0.0) -> float:
 
 
 def _integer(value: Any, default: int = 0) -> int:
+    """Round mixed telemetry values to integers for positions, laps, and counters."""
     try:
         return int(round(float(value)))
     except (TypeError, ValueError):
@@ -44,11 +47,13 @@ def _integer(value: Any, default: int = 0) -> int:
 
 
 def _median(values: Iterable[float], default: float = 0.0) -> float:
+    """Return the median of positive telemetry samples with a fallback default."""
     clean = [float(value) for value in values if _number(value, -1.0) > 0]
     return statistics.median(clean) if clean else default
 
 
 def _compound(value: Any) -> str:
+    """Normalize FastF1 tyre names and encoded compounds to display labels."""
     if isinstance(value, str):
         name = value.strip().upper()
         return "INTERMEDIATE" if name in ("INTER", "I") else name
@@ -56,6 +61,7 @@ def _compound(value: Any) -> str:
 
 
 def _fmt_time(seconds: float) -> str:
+    """Format positive lap or session seconds as M:SS.mmm for analysis rows."""
     if seconds <= 0:
         return "-"
     minutes, remainder = divmod(seconds, 60)
@@ -66,6 +72,7 @@ class RaceIntelligenceEngine:
     """Accumulates replay telemetry and exposes team-oriented analyses."""
 
     def __init__(self):
+        """Initialize replay history, event trackers, imported laps, and strategy-flow engine."""
         self.latest: dict[str, Any] = {}
         self.snapshots: list[dict[str, Any]] = []
         self.overtakes: list[dict[str, Any]] = []
@@ -80,6 +87,7 @@ class RaceIntelligenceEngine:
 
     @property
     def drivers(self) -> list[str]:
+        """Return all driver codes visible in live frames, lap data, or imported laps."""
         frame = self.latest.get("frame") or {}
         codes = set((frame.get("drivers") or {}).keys())
         codes.update((self.latest.get("lap_times") or {}).keys())
@@ -88,14 +96,17 @@ class RaceIntelligenceEngine:
 
     @property
     def current_lap(self) -> int:
+        """Read the current replay lap with frame data as a fallback."""
         session = self.latest.get("session_data") or {}
         return _integer(session.get("lap"), _integer((self.latest.get("frame") or {}).get("lap"), 1))
 
     @property
     def total_laps(self) -> int:
+        """Read total race laps while keeping it at least as large as the current lap."""
         return max(self.current_lap, _integer((self.latest.get("session_data") or {}).get("total_laps"), 60))
 
     def update(self, payload: dict[str, Any]) -> None:
+        """Ingest one replay payload and refresh sampled history, overtakes, and pit events."""
         frame = payload.get("frame")
         if not isinstance(frame, dict):
             return
@@ -125,6 +136,7 @@ class RaceIntelligenceEngine:
             self._last_sample_t = t
 
     def _detect_overtakes(self, t: float, frame: dict[str, Any], positions: dict[str, int]) -> None:
+        """Detect clean position swaps while filtering pit-lane and cooldown artifacts."""
         if not self._previous_positions or t <= 0:
             return
         drivers = frame.get("drivers") or {}
@@ -155,6 +167,7 @@ class RaceIntelligenceEngine:
                     self._overtake_cooldown[pair] = t
 
     def _detect_pits(self, t: float, drivers: dict[str, dict[str, Any]]) -> None:
+        """Track pit entry and exit windows from per-driver pit-lane flags."""
         for code, data in drivers.items():
             in_pit = bool(data.get("in_pit"))
             previous = self._previous_pit.get(code, False)
@@ -219,6 +232,7 @@ class RaceIntelligenceEngine:
         return len(normalized)
 
     def strategy_analysis(self, driver: str, risk: float = 0.5) -> AnalysisResult:
+        """Render ranked strategy-flow trajectories for the selected driver."""
         trajectories = self.strategy_trajectories(driver, risk, 8)
         rows = []
         for rank, item in enumerate(trajectories, 1):
@@ -239,6 +253,7 @@ class RaceIntelligenceEngine:
                               ["Rank", "Strategy", "Remaining time", "Finish", "Gain", "Risk", "Flow reward"], rows)
 
     def strategy_trajectories(self, driver: str, risk: float = 0.5, count: int = 10):
+        """Build strategy context from live telemetry and sample candidate race plans."""
         data = self._driver(driver)
         baseline = self._driver_pace(driver) or self._field_pace() or 90.0
         weather = (self.latest.get("frame") or {}).get("weather") or {}
@@ -261,6 +276,7 @@ class RaceIntelligenceEngine:
         return self._flow.generate(context, count=count)
 
     def battles_analysis(self) -> AnalysisResult:
+        """Identify close car pairs and recent overtakes from current gaps and speed deltas."""
         drivers = (self.latest.get("frame") or {}).get("drivers") or {}
         ordered = sorted(drivers.items(), key=lambda item: _integer(item[1].get("position"), 99))
         rows = []
@@ -282,6 +298,7 @@ class RaceIntelligenceEngine:
                               ["Position", "Ahead", "Attacker", "Estimated gap", "Closing", "State"], rows, notes)
 
     def undercut_analysis(self) -> AnalysisResult:
+        """Compare completed pit stops against nearby rival stops and current position change."""
         completed = [event for event in self.pit_events if event.get("exit_t") is not None]
         rows = []
         for event in completed:
@@ -305,6 +322,7 @@ class RaceIntelligenceEngine:
                               ["Driver", "Lap", "From", "To", "Pit phase", "Closest rival", "Net places", "Result"], rows)
 
     def tyre_analysis(self) -> AnalysisResult:
+        """Estimate compound pace, degradation slope, tyre age, and confidence from clean laps."""
         groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
         for code, entries in (self.latest.get("lap_times") or {}).items():
             for entry in entries:
@@ -329,6 +347,7 @@ class RaceIntelligenceEngine:
                               ["Driver", "Compound", "Clean laps", "Median pace", "Degradation", "Current age", "Health", "Confidence"], rows)
 
     def safety_car_analysis(self) -> AnalysisResult:
+        """Evaluate pit-loss savings and tyre calls under the current neutralization state."""
         status = str(self.latest.get("track_status", "1"))
         active = status in ("4", "6", "7", "SC", "VSC")
         rows = []
@@ -350,6 +369,7 @@ class RaceIntelligenceEngine:
                               ["Driver", "Position", "Tyre", "Age", "Effective pit loss", "Potential saving", "Call"], rows)
 
     def driver_comparison(self, first: str, second: str) -> AnalysisResult:
+        """Compare two drivers across position, pace, speed, tyre age, overtakes, and stops."""
         rows = []
         for label, getter, lower_better in (
             ("Position", lambda c: _integer(self._driver(c).get("position"), 99), True),
@@ -373,6 +393,7 @@ class RaceIntelligenceEngine:
         return AnalysisResult("Driver Performance Comparison", summary, ["Metric", first, second, "Advantage"], rows)
 
     def race_control_analysis(self) -> AnalysisResult:
+        """Prioritize race-control messages by operational severity."""
         rows = []
         for event in self.latest.get("race_control_events") or []:
             key = (event.get("time"), event.get("message"), event.get("racing_number"))
@@ -388,6 +409,7 @@ class RaceIntelligenceEngine:
                               ["Time", "Category", "Flag", "Car", "Priority", "Message"], rows)
 
     def practice_plan(self, driver: str) -> AnalysisResult:
+        """Generate a run plan from imported practice laps or current clean-lap pace proxy."""
         laps = [lap for lap in self.external_laps if not driver or str(lap["driver"]) == driver]
         if not laps:
             laps = [
@@ -415,6 +437,7 @@ class RaceIntelligenceEngine:
                               ["Import OpenF1/FastF1 CSV or JSON lap records to replace the race-pace proxy."])
 
     def predictive_analysis(self) -> AnalysisResult:
+        """Monte Carlo the finish order from current position, pace, tyres, and pit exposure."""
         codes = self.drivers
         if not codes:
             return AnalysisResult("Predictive Replay Mode", "Waiting for driver data.", [], [])
@@ -446,6 +469,7 @@ class RaceIntelligenceEngine:
                               ["Driver", "Expected finish", "Win", "Podium", "Points", "Best", "Worst"], rows)
 
     def battery_analysis(self) -> tuple[AnalysisResult, ...]:
+        """Package ERS deployment, SOC, policy, simulator, and RL-environment results."""
         bundle = analyze_battery_deployment(self.snapshots, self.latest, self.drivers)
         driver_result = AnalysisResult(
             "2026 Battery Deployment Model",
@@ -515,6 +539,7 @@ class RaceIntelligenceEngine:
         return driver_result, zone_result, policy_result, soc_result, lift_result, simulator_result, environment_result
 
     def summary_report(self) -> AnalysisResult:
+        """Assemble a compact session-wide summary from all live intelligence signals."""
         frame = self.latest.get("frame") or {}
         ordered = sorted((frame.get("drivers") or {}).items(), key=lambda item: _integer(item[1].get("position"), 99))
         fastest = min(((self._driver_pace(code), code) for code in self.drivers if self._driver_pace(code) > 0), default=(0, "-"))
@@ -541,6 +566,7 @@ class RaceIntelligenceEngine:
                               ["Metric", "Value"], rows, notes)
 
     def report_text(self, first: str = "", second: str = "") -> str:
+        """Export current intelligence sections as plain-text report content."""
         sections = [
             self.summary_report(), self.battles_analysis(), self.undercut_analysis(),
             self.tyre_analysis(), self.safety_car_analysis(), self.predictive_analysis(),
@@ -556,19 +582,24 @@ class RaceIntelligenceEngine:
         return "\n".join(lines)
 
     def _driver(self, code: str) -> dict[str, Any]:
+        """Return the latest frame telemetry for one driver code."""
         return (((self.latest.get("frame") or {}).get("drivers") or {}).get(code) or {})
 
     def _lap_entries(self, code: str) -> list[dict[str, Any]]:
+        """Return server-provided lap records for one driver code."""
         return list((self.latest.get("lap_times") or {}).get(code, []))
 
     def _driver_pace(self, code: str) -> float:
+        """Compute median clean-lap pace for one driver from lap entries."""
         return _median(entry.get("time_s") for entry in self._lap_entries(code) if self._clean_lap(entry))
 
     def _field_pace(self) -> float:
+        """Compute the field median of driver clean-lap pace estimates."""
         return _median(self._driver_pace(code) for code in self.drivers)
 
     @staticmethod
     def _clean_lap(entry: dict[str, Any]) -> bool:
+        """Reject pit, out-lap, outlier, and nonpositive lap-time records."""
         return (
             _number(entry.get("time_s")) > 0
             and not entry.get("is_pit")
@@ -578,6 +609,7 @@ class RaceIntelligenceEngine:
         )
 
     def _recent_speed(self, code: str) -> float:
+        """Average recent sampled speed for a driver with latest telemetry as fallback."""
         speeds = [
             _number((snapshot.get("drivers") or {}).get(code, {}).get("speed"))
             for snapshot in self.snapshots[-60:]
@@ -585,10 +617,12 @@ class RaceIntelligenceEngine:
         return statistics.mean([speed for speed in speeds if speed > 0]) if any(speed > 0 for speed in speeds) else _number(self._driver(code).get("speed"))
 
     def _estimated_pit_loss(self) -> float:
+        """Estimate pit phase loss from observed stops, bounded to realistic race values."""
         durations = [event["exit_t"] - event["entry_t"] for event in self.pit_events if event.get("exit_t")]
         return max(12.0, min(35.0, _median(durations, 22.0)))
 
     def _traffic_risk(self, code: str) -> float:
+        """Estimate local traffic density around a driver from race-distance gaps."""
         data = self._driver(code)
         drivers = (self.latest.get("frame") or {}).get("drivers") or {}
         close = 0
@@ -601,6 +635,7 @@ class RaceIntelligenceEngine:
 
     @staticmethod
     def _linear_slope(xs: list[int], ys: list[float]) -> float:
+        """Fit a simple degradation slope to tyre age and lap-time pairs."""
         pairs = [(float(x), float(y)) for x, y in zip(xs, ys) if x >= 0 and y > 0]
         if len(pairs) < 2:
             return 0.0

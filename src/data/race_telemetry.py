@@ -2,17 +2,13 @@ import math
 import os
 import pickle
 import sys
-from datetime import timedelta, date
+from datetime import timedelta
 from multiprocessing import Pool, cpu_count
 from typing import Callable
 
-import fastf1
-import fastf1.plotting
 import numpy as np
 import pandas as pd
 
-from src.lib.settings import get_settings
-from src.lib.time import parse_time_string
 from src.lib.tyres import get_tyre_compound_int
 
 from src.data.cache_session import get_driver_colors
@@ -148,7 +144,9 @@ def _process_single_driver(args):
 from src.data.safety_car import compute_safety_car_positions
 
 def get_race_telemetry(session, session_type="R", progress_callback: Callable[[float, str], None] | None = None):
+    """Build or load cached replay frames, status windows, weather, race control, and driver colors."""
     def report(progress, message):
+        """Clamp telemetry preparation progress before notifying the server loader."""
         if progress_callback:
             progress_callback(max(0.0, min(1.0, progress)), message)
 
@@ -164,7 +162,6 @@ def get_race_telemetry(session, session_type="R", progress_callback: Callable[[f
             ) as f:
                 frames = pickle.load(f)
                 print(f"Loaded precomputed {cache_suffix} telemetry data.")
-                print("The replay should begin in a new window shortly!")
                 report(1.0, "Loaded cached telemetry")
                 return frames
     except FileNotFoundError:
@@ -357,6 +354,7 @@ def get_race_telemetry(session, session_type="R", progress_callback: Callable[[f
                 weather_times = weather_times[order]
 
                 def _maybe_get(name):
+                    """Fetch an ordered weather column array when the FastF1 frame contains it."""
                     return (
                         weather_df[name].to_numpy()[order]
                         if name in weather_df
@@ -364,6 +362,7 @@ def get_race_telemetry(session, session_type="R", progress_callback: Callable[[f
                     )
 
                 def _resample(series):
+                    """Interpolate a weather series onto the replay timeline."""
                     if series is None:
                         return None
                     return np.interp(timeline, weather_times, series)
@@ -409,7 +408,7 @@ def get_race_telemetry(session, session_type="R", progress_callback: Callable[[f
                 if pd.notna(pit_out):
                     end=pit_out.total_seconds()
                 else:
-                    end=start+40 #Error Rare case
+                    end = start + 40
                 
                 windows.append((start,end))
         pit_windows[drv]=windows
@@ -422,8 +421,6 @@ def get_race_telemetry(session, session_type="R", progress_callback: Callable[[f
             shifted.append((start-global_t_min,end-global_t_min))
         pit_windows_shifted[drv]=shifted
     
-    print("PIT WINDOWS: ", pit_windows)
-
     # 5. Build the frames + LIVE LEADERBOARD
     frames = []
     num_frames = len(timeline)
@@ -535,8 +532,7 @@ def get_race_telemetry(session, session_type="R", progress_callback: Callable[[f
     # 5d. Compute Safety Car positions for each frame
     compute_safety_car_positions(frames, formatted_track_statuses, session)
     report(1.0, "Telemetry ready")
-    print("completed telemetry extraction...")
-    print("Saving to cache file...")
+    print("Telemetry extraction complete; saving cache file.")
     # If computed_data/ directory doesn't exist, create it
     if not os.path.exists("computed_data"):
         os.makedirs("computed_data")
@@ -552,8 +548,7 @@ def get_race_telemetry(session, session_type="R", progress_callback: Callable[[f
             "max_tyre_life": max_tyre_life_map,
         }, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    print("Saved Successfully!")
-    print("The replay should begin in a new window shortly")
+    print("Telemetry cache saved successfully.")
     return {
         "frames": frames,
         "driver_colors": get_driver_colors(session),

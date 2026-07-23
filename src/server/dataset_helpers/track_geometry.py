@@ -9,6 +9,7 @@ from src.server.common_helpers.json_helpers import safe_float, safe_int
 
 
 def sample_geometry(telemetry: Any, max_points: int = 700) -> dict[str, list[float]]:
+    """Downsample FastF1 telemetry coordinates into a track polyline."""
     if telemetry is None or len(telemetry) == 0 or "X" not in telemetry or "Y" not in telemetry:
         return {"x": [], "y": []}
     count = len(telemetry)

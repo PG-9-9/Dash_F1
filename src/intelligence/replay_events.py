@@ -6,6 +6,7 @@ from typing import Any
 
 
 def _number(value: Any, default: float = 0.0) -> float:
+    """Convert replay-event values to finite floats for timeline comparisons."""
     try:
         result = float(value)
         return result if result == result and result not in (float("inf"), float("-inf")) else default
@@ -14,6 +15,7 @@ def _number(value: Any, default: float = 0.0) -> float:
 
 
 def _integer(value: Any, default: int = 0) -> int:
+    """Round replay-event values to integers for lap and position fields."""
     try:
         return int(round(float(value)))
     except (TypeError, ValueError):
@@ -21,6 +23,7 @@ def _integer(value: Any, default: int = 0) -> int:
 
 
 def _compound(value: Any) -> str:
+    """Normalize replay tyre identifiers into readable compound labels."""
     names = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"]
     if isinstance(value, str):
         name = value.strip().upper()

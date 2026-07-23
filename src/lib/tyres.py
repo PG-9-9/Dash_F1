@@ -9,9 +9,11 @@ tyre_compounds_ints = {
 }
 
 def get_tyre_compound_int(compound_str):
-  return int(tyre_compounds_ints.get(compound_str.upper(), -1))
+  """Map a tyre compound label to the replay numeric encoding."""
+  return int(tyre_compounds_ints.get(str(compound_str).upper(), -1))
 
 def get_tyre_compound_str(compound_int):
+  """Map a replay tyre numeric encoding back to a compound label."""
   for k, v in tyre_compounds_ints.items():
     if v == compound_int:
       return k

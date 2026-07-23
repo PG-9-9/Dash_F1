@@ -7,8 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements-server.txt ./
-RUN pip install --no-cache-dir -r requirements-server.txt
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 RUN mkdir -p /app/.fastf1-cache /app/computed_data

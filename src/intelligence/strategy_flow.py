@@ -35,6 +35,7 @@ DEGRADATION = {
 
 @dataclass(frozen=True)
 class StrategyContext:
+    """Live race context used to evaluate strategy-flow trajectories."""
     current_lap: int
     total_laps: int
     current_compound: str
@@ -50,6 +51,7 @@ class StrategyContext:
 
 @dataclass(frozen=True)
 class StrategyAction:
+    """One pit or pace instruction in a generated strategy sequence."""
     lap: int
     kind: str
     compound: str | None = None
@@ -57,6 +59,7 @@ class StrategyAction:
 
     @property
     def label(self) -> str:
+        """Render a strategy action as a dashboard-friendly instruction."""
         if self.kind == "PIT":
             return f"L{self.lap} PIT -> {self.compound}"
         return f"L{self.lap} PACE {self.pace}"
@@ -64,6 +67,7 @@ class StrategyAction:
 
 @dataclass
 class StrategyTrajectory:
+    """Evaluated strategy sequence with reward, risk, position, and rationale."""
     actions: list[StrategyAction]
     expected_time_s: float
     reward: float
@@ -74,10 +78,12 @@ class StrategyTrajectory:
 
     @property
     def signature(self) -> tuple:
+        """Return a hashable identity for duplicate strategy trajectory removal."""
         return tuple((a.lap, a.kind, a.compound, a.pace) for a in self.actions)
 
     @property
     def sequence(self) -> str:
+        """Join all action labels into a compact strategy string."""
         return " | ".join(action.label for action in self.actions)
 
 
@@ -85,6 +91,7 @@ class StrategyFlowEngine:
     """Sample strategy trajectories with reward-proportional forward flows."""
 
     def __init__(self, seed: int = 7):
+        """Store the deterministic sampling seed for strategy generation."""
         self.seed = seed
 
     def generate(
@@ -93,6 +100,7 @@ class StrategyFlowEngine:
         count: int = 10,
         samples: int = 600,
     ) -> list[StrategyTrajectory]:
+        """Produce diverse high-reward strategy trajectories for the current context."""
         if context.total_laps <= context.current_lap:
             return [self._evaluate(context, [])]
 
@@ -116,6 +124,7 @@ class StrategyFlowEngine:
         return self._select_diverse(ranked, count)
 
     def _anchor_strategies(self, context: StrategyContext) -> Iterable[list[StrategyAction]]:
+        """Yield deterministic baseline stop and pace plans for stable recommendations."""
         remaining = context.total_laps - context.current_lap
         windows = sorted({
             min(context.total_laps - 1, context.current_lap + max(1, remaining // 4)),
@@ -138,6 +147,7 @@ class StrategyFlowEngine:
                 ]
 
     def _sample_trajectory(self, context: StrategyContext, rng: random.Random) -> list[StrategyAction]:
+        """Sample pit laps, compounds, and pace actions from reward-shaped priors."""
         remaining = context.total_laps - context.current_lap
         max_stops = 2 if remaining >= 15 else 1
         if remaining >= 35 and rng.random() < 0.18 + 0.25 * context.risk_tolerance:
@@ -185,10 +195,12 @@ class StrategyFlowEngine:
 
     @staticmethod
     def _weighted_index(weights: list[float], rng: random.Random) -> int:
+        """Choose an index from explicit non-normalized weights."""
         return rng.choices(range(len(weights)), weights=weights, k=1)[0]
 
     @staticmethod
     def _available_compounds(context: StrategyContext) -> list[str]:
+        """Limit candidate compounds according to the current rain probability."""
         if context.rain_probability >= 0.65:
             return ["INTERMEDIATE", "WET", "MEDIUM"]
         if context.rain_probability >= 0.25:
@@ -197,6 +209,7 @@ class StrategyFlowEngine:
 
     @staticmethod
     def _compound_flow(context: StrategyContext, compound: str, lap: int) -> float:
+        """Score a compound choice by stint length, degradation, and weather fit."""
         stint_length = max(1, context.total_laps - lap)
         predicted_loss = BASE_PACE[compound] * stint_length
         predicted_loss += DEGRADATION[compound] * stint_length * (stint_length + 1) / 2
@@ -207,6 +220,7 @@ class StrategyFlowEngine:
         return max(0.01, math.exp(-predicted_loss / 18.0))
 
     def _evaluate(self, context: StrategyContext, actions: list[StrategyAction]) -> StrategyTrajectory:
+        """Convert a strategy action list into time, risk, reward, and rationale."""
         pit_by_lap = {a.lap: a for a in actions if a.kind == "PIT"}
         pace_action = next((a for a in actions if a.kind == "PACE"), None)
         pace = pace_action.pace if pace_action else "BALANCED"
@@ -286,6 +300,7 @@ class StrategyFlowEngine:
 
     @staticmethod
     def _select_diverse(ranked: list[StrategyTrajectory], count: int) -> list[StrategyTrajectory]:
+        """Keep top trajectories while avoiding repeated action profiles."""
         selected: list[StrategyTrajectory] = []
         profiles: set[tuple] = set()
         for trajectory in ranked:

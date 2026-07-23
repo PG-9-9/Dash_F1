@@ -11,6 +11,7 @@ from src.server.sessions import session_display_name
 
 
 def _driver_labels(session: Any) -> dict[str, str]:
+    """Build short driver display labels from FastF1 driver metadata."""
     names: dict[str, str] = {}
     for number in getattr(session, "drivers", []):
         driver = session.get_driver(number)
@@ -32,9 +33,11 @@ def load_fastf1_dataset(
     """Load a session without importing desktop UI modules."""
     import sys
 
-    from src.f1_data import enable_cache, get_race_telemetry, load_session
+    from src.data.cache_session import enable_cache, load_session
+    from src.data.race_telemetry import get_race_telemetry
 
     def report(progress: float, message: str) -> None:
+        """Clamp dataset-loader progress before sending it to the caller."""
         if progress_callback is not None:
             progress_callback(max(0.0, min(1.0, progress)), message)
 

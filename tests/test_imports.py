@@ -7,7 +7,6 @@ MODULES = [
     "src.data.cache_session",
     "src.data.race_telemetry",
     "src.data.safety_car",
-    "src.f1_data",
     "src.intelligence.battery_deployment",
     "src.intelligence.battery_rl_environment",
     "src.intelligence.race_intelligence",

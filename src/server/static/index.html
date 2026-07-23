@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111214">
   <title>F1 Race Intelligence</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -148,19 +148,19 @@
       <section class="tab-panel" id="tab-battery">
         <div class="view-toolbar"><div><span class="eyebrow">2026 power unit</span><h1>Battery deployment</h1></div></div>
         <p class="model-summary" id="batterySummary">Waiting for ERS deployment model.</p>
-        <div class="two-column wide-left">
+        <div class="two-column">
           <section class="workspace"><div class="section-heading"><div><span class="eyebrow">ERS pressure</span><h2>Harvest MJ vs deploy MJ</h2></div></div><canvas class="chart-canvas tall" id="batteryChart" width="760" height="440"></canvas></section>
-          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Engineering calls</span><h2>Driver battery table</h2></div></div><div class="table-scroll"><table id="batteryTable"></table></div></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Reserve model</span><h2>SOC proxy and readiness</h2></div></div><canvas class="chart-canvas" id="batterySocChart" width="700" height="360"></canvas></section>
         </div>
         <div class="two-column full-width">
-          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Reserve model</span><h2>SOC proxy and readiness</h2></div></div><canvas class="chart-canvas" id="batterySocChart" width="700" height="360"></canvas></section>
-          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Overtake readiness</span><h2>Reserve table</h2></div></div><div class="table-scroll"><table id="batterySocTable"></table></div></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Track zones</span><h2>Deploy / harvest opportunity energy</h2></div></div><canvas class="chart-canvas" id="batteryZoneChart" width="700" height="360"></canvas></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">RL/ECMS policy</span><h2>Action score by driver</h2></div></div><canvas class="chart-canvas" id="batteryPolicyChart" width="700" height="360"></canvas></section>
         </div>
-        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Track zones</span><h2>Deploy / harvest opportunities</h2></div></div><div class="table-scroll"><table id="batteryZoneTable"></table></div></section>
-        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Lift and coast</span><h2>Recovery cost model</h2></div></div><div class="table-scroll"><table id="batteryLiftTable"></table></div></section>
-        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">RL/ECMS policy</span><h2>Spend / hold / harvest action scores</h2></div></div><div class="table-scroll"><table id="batteryPolicyTable"></table></div></section>
-        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Simulator policy</span><h2>Short-horizon energy value</h2></div></div><div class="table-scroll"><table id="batterySimulatorTable"></table></div></section>
-        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Trainable environment</span><h2>RL heuristic vs baselines</h2></div></div><div class="table-scroll"><table id="batteryRlEnvironmentTable"></table></div></section>
+        <div class="two-column full-width">
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Lift and coast</span><h2>Recovery opportunity by driver</h2></div></div><canvas class="chart-canvas" id="batteryLiftChart" width="700" height="360"></canvas></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Simulator policy</span><h2>Short-horizon energy value</h2></div></div><canvas class="chart-canvas" id="batterySimulatorChart" width="700" height="360"></canvas></section>
+        </div>
+        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Trainable environment</span><h2>Policy reward vs baseline</h2></div></div><canvas class="chart-canvas tall" id="batteryRlEnvironmentChart" width="900" height="430"></canvas></section>
       </section>
 
     </main>

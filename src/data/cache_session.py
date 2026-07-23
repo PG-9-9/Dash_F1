@@ -5,33 +5,29 @@ import fastf1.plotting
 
 from src.lib.settings import get_settings
 
+
 def enable_cache():
-    # Get cache location from settings
+    """Create the configured FastF1 cache directory and activate it for session loads."""
     settings = get_settings()
     cache_path = settings.cache_location
 
-    # Check if cache folder exists
     if not os.path.exists(cache_path):
         os.makedirs(cache_path)
 
-    # Enable local cache
     fastf1.Cache.enable_cache(cache_path)
 
 
 def load_session(year, round_number, session_type="R"):
-    # session_type: 'R' (Race), 'S' (Sprint) etc.
+    """Load a FastF1 session with telemetry and weather channels enabled."""
     session = fastf1.get_session(year, round_number, session_type)
     session.load(telemetry=True, weather=True)
     return session
 
 
-# The following functions require a loaded session object
-
-
 def get_driver_colors(session):
+    """Return FastF1 driver palette entries as RGB tuples keyed by driver code."""
     color_mapping = fastf1.plotting.get_driver_color_mapping(session)
 
-    # Convert hex colors to RGB tuples
     rgb_colors = {}
     for driver, hex_color in color_mapping.items():
         hex_color = hex_color.lstrip("#")
@@ -41,5 +37,6 @@ def get_driver_colors(session):
 
 
 def get_circuit_rotation(session):
+    """Read the circuit rotation angle from a loaded FastF1 session."""
     circuit = session.get_circuit_info()
     return circuit.rotation

@@ -14,6 +14,7 @@ ACTIONS = ("SPEND", "HOLD", "HARVEST", "LIFT")
 
 @dataclass(frozen=True)
 class EnergyState:
+    """Normalized public-telemetry state used by ERS policy rollouts."""
     lap: int
     rel_dist: float
     position: int
@@ -27,6 +28,7 @@ class EnergyState:
     harvest_opportunity: float
 
     def vector(self) -> list[float]:
+        """Return the ERS state as a bounded numeric feature vector for model training."""
         return [
             max(0.0, min(1.0, self.rel_dist)),
             max(0.0, min(1.0, self.position / 20.0)),
@@ -43,6 +45,7 @@ class EnergyState:
 
 @dataclass(frozen=True)
 class StepResult:
+    """Single transition result returned by the ERS rollout environment."""
     state: EnergyState
     action: str
     reward: float
@@ -59,6 +62,7 @@ class BatteryEnergyEnvironment:
     """
 
     def __init__(self, frames: list[dict[str, Any]], driver: str, sample_step: int = 25):
+        """Filter replay frames to the selected driver and initialize SOC state."""
         self.driver = driver
         self.frames = [
             frame for index, frame in enumerate(frames)
@@ -69,14 +73,17 @@ class BatteryEnergyEnvironment:
 
     @property
     def done(self) -> bool:
+        """Report whether the rollout cursor has reached the final sampled frame."""
         return self.index >= max(0, len(self.frames) - 1)
 
     def reset(self, soc: float = 50.0) -> EnergyState:
+        """Restart the environment cursor with a bounded initial SOC proxy."""
         self.index = 0
         self.soc = max(5.0, min(95.0, soc))
         return self._state()
 
     def step(self, action: str) -> StepResult:
+        """Apply one ERS action, update SOC, and return the next reward-bearing transition."""
         action = action if action in ACTIONS else "HOLD"
         state = self._state()
         current = self._driver_at(self.index)
@@ -97,6 +104,7 @@ class BatteryEnergyEnvironment:
         return StepResult(self._state(), action, reward, self.soc, self.done)
 
     def rollout(self, policy: Callable[[EnergyState], str], horizon: int = 120) -> dict[str, Any]:
+        """Run a policy through the sampled replay horizon and summarize reward and actions."""
         state = self.reset()
         total_reward = 0.0
         counts = {action: 0 for action in ACTIONS}
@@ -117,12 +125,14 @@ class BatteryEnergyEnvironment:
         }
 
     def _driver_at(self, index: int) -> dict[str, Any]:
+        """Return selected-driver telemetry from a bounded frame index."""
         if not self.frames:
             return {}
         frame = self.frames[max(0, min(index, len(self.frames) - 1))]
         return (frame.get("drivers") or {}).get(self.driver) or {}
 
     def _state(self) -> EnergyState:
+        """Build the current EnergyState from replay telemetry and battle-pressure heuristics."""
         if not self.frames:
             return EnergyState(1, 0.0, 99, 0.0, 0.0, 0.0, False, self.soc, 0.0, 0.0, 0.0)
         frame = self.frames[self.index]
@@ -146,6 +156,7 @@ class BatteryEnergyEnvironment:
 
     @staticmethod
     def _reward(state: EnergyState, action: str, deploy_kw: float, harvest_kw: float) -> float:
+        """Compute proxy ERS reward for deployment value, reserve recovery, and pressure cost."""
         pressure = max(state.attack_pressure, state.defense_pressure)
         straight_value = max(0.0, min(1.0, (state.speed - 160.0) / 130.0)) * max(0.0, state.throttle / 100.0)
         reward = 0.0
@@ -167,6 +178,7 @@ class BatteryEnergyEnvironment:
 
 
 def heuristic_energy_policy(state: EnergyState) -> str:
+    """Select an interpretable ERS action from SOC, pressure, speed, and recovery opportunity."""
     pressure = max(state.attack_pressure, state.defense_pressure)
     if state.soc >= 58 and pressure >= 0.42 and state.speed > 150:
         return "SPEND"
@@ -178,6 +190,7 @@ def heuristic_energy_policy(state: EnergyState) -> str:
 
 
 def compare_energy_policies(frames: list[dict[str, Any]], drivers: list[str]) -> list[list[Any]]:
+    """Rank heuristic and baseline ERS policies for each driver on replay-derived frames."""
     rows: list[list[Any]] = []
     policies: dict[str, Callable[[EnergyState], str]] = {
         "RL heuristic": heuristic_energy_policy,
@@ -210,6 +223,7 @@ def compare_energy_policies(frames: list[dict[str, Any]], drivers: list[str]) ->
 
 
 def _format_action_mix(actions: dict[str, int]) -> str:
+    """Format rollout action counts as compact percentage labels."""
     total = max(1, sum(actions.values()))
     pieces = []
     for action in ACTIONS:

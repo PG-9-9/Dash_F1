@@ -22,6 +22,7 @@ FPS = 25
 
 
 def serialize_result(result: AnalysisResult) -> dict[str, Any]:
+    """Convert an AnalysisResult dataclass into the API response shape."""
     return {
         "title": result.title,
         "summary": result.summary,
@@ -35,6 +36,7 @@ class HeadlessReplayController:
     """Thread-safe server-owned replay and intelligence state."""
 
     def __init__(self):
+        """Initialize replay state, caches, and intelligence engines behind a lock."""
         self._lock = threading.RLock()
         self.dataset: ReplayDataset | None = None
         self.intelligence = RaceIntelligenceEngine()
@@ -53,9 +55,11 @@ class HeadlessReplayController:
 
     @property
     def loaded(self) -> bool:
+        """Report whether a replay dataset with frames is available."""
         return self.dataset is not None and bool(self.dataset.frames)
 
     def set_loading(self) -> None:
+        """Reset state for a new background session load."""
         with self._lock:
             self.loading = True
             self.loading_progress = 0.02
@@ -63,12 +67,14 @@ class HeadlessReplayController:
             self.error = None
 
     def set_loading_progress(self, progress: float, message: str | None = None) -> None:
+        """Update bounded loading percentage and optional status message."""
         with self._lock:
             self.loading_progress = max(0.0, min(1.0, progress))
             if message:
                 self.loading_message = message
 
     def set_error(self, message: str) -> None:
+        """Publish a failed session-load state and retain the error message."""
         with self._lock:
             self.loading = False
             self.loading_progress = 0.0
@@ -76,6 +82,7 @@ class HeadlessReplayController:
             self.error = message
 
     def set_dataset(self, dataset: ReplayDataset, autoplay: bool = True) -> None:
+        """Install a prepared dataset and reset replay, history, and analysis caches."""
         if not dataset.frames:
             raise ValueError("Replay dataset contains no frames")
         with self._lock:
@@ -96,6 +103,7 @@ class HeadlessReplayController:
 
     @staticmethod
     def _precompute_position_history(frames: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+        """Sample replay frames into stable per-driver position-history points."""
         history: dict[str, list[dict[str, Any]]] = {}
         previous_positions: dict[str, int] = {}
         sample_step = FPS * 5
@@ -126,6 +134,7 @@ class HeadlessReplayController:
         return history
 
     def advance(self, elapsed_s: float) -> None:
+        """Move the replay cursor according to elapsed wall time and playback speed."""
         with self._lock:
             if not self.loaded or self.paused:
                 return
@@ -136,6 +145,7 @@ class HeadlessReplayController:
                 self.paused = True
 
     def control(self, action: str, value: Any = None) -> dict[str, Any]:
+        """Apply validated playback control commands and invalidate analysis cache."""
         with self._lock:
             if not self.loaded:
                 raise RuntimeError("No replay session is loaded")
@@ -164,11 +174,13 @@ class HeadlessReplayController:
             return self.core_state()
 
     def _frame(self) -> dict[str, Any]:
+        """Return the current replay frame from the cursor index."""
         assert self.dataset is not None
         index = min(int(self.frame_index), len(self.dataset.frames) - 1)
         return self.dataset.frames[index]
 
     def _track_status(self, t: float) -> str:
+        """Resolve the active track-status code at a replay timestamp."""
         assert self.dataset is not None
         current = "1"
         for status in self.dataset.track_statuses:
@@ -179,6 +191,7 @@ class HeadlessReplayController:
         return current
 
     def _visible_events(self, t: float) -> dict[str, list[dict[str, Any]]]:
+        """Return overtakes and pit windows visible at the current replay timestamp."""
         pits = []
         for event in self.intelligence_events["pit_events"]:
             if event["entry_t"] > t:
@@ -193,6 +206,7 @@ class HeadlessReplayController:
         }
 
     def _engine_payload(self) -> dict[str, Any]:
+        """Build the enriched payload consumed by RaceIntelligenceEngine."""
         assert self.dataset is not None
         frame = self._frame()
         frame_index = int(self.frame_index)
@@ -229,6 +243,7 @@ class HeadlessReplayController:
         }
 
     def core_state(self) -> dict[str, Any]:
+        """Serialize current replay state, frame data, controls, and loading status."""
         with self._lock:
             if not self.loaded:
                 return {
@@ -278,6 +293,7 @@ class HeadlessReplayController:
             })
 
     def bootstrap(self) -> dict[str, Any]:
+        """Serialize static session metadata, driver colors, track geometry, and lap times."""
         with self._lock:
             state = self.core_state()
             if not self.loaded:
@@ -293,6 +309,7 @@ class HeadlessReplayController:
             })
 
     def analyses(self, primary: str = "", comparison: str = "", risk: float = 0.5) -> dict[str, Any]:
+        """Run or reuse cached intelligence analyses for driver selections and replay frame."""
         with self._lock:
             if not self.loaded:
                 return {}

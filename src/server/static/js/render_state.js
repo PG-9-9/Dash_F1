@@ -140,12 +140,5 @@ export function renderAnalyses(bundle) {
   renderTable("raceControlTable", bundle.race_control, 60);
   renderTable("comparisonTable", bundle.comparison);
   renderTable("predictionTable", bundle.prediction);
-  renderTable("batteryTable", bundle.battery);
-  renderTable("batteryZoneTable", bundle.battery_zones);
-  renderTable("batteryPolicyTable", bundle.battery_policy);
-  renderTable("batterySocTable", bundle.battery_soc);
-  renderTable("batteryLiftTable", bundle.battery_lift);
-  renderTable("batterySimulatorTable", bundle.battery_simulator);
-  renderTable("batteryRlEnvironmentTable", bundle.battery_rl_environment);
   scheduleActiveCharts(false);
 }

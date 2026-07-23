@@ -7,6 +7,7 @@ from typing import Any
 
 
 def safe_float(value: Any, default: float = 0.0) -> float:
+    """Convert API and telemetry values to finite floats with fallback."""
     try:
         result = float(value)
         return result if math.isfinite(result) else default
@@ -15,6 +16,7 @@ def safe_float(value: Any, default: float = 0.0) -> float:
 
 
 def safe_int(value: Any, default: int = 0) -> int:
+    """Convert API and telemetry values to rounded integers with fallback."""
     try:
         return int(round(float(value)))
     except (TypeError, ValueError):
@@ -22,6 +24,7 @@ def safe_int(value: Any, default: int = 0) -> int:
 
 
 def hex_color(value: Any) -> str:
+    """Normalize driver color values into CSS hex strings."""
     if isinstance(value, str):
         return value if value.startswith("#") else f"#{value}"
     if isinstance(value, (tuple, list)) and len(value) >= 3:

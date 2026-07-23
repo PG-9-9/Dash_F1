@@ -14,6 +14,7 @@ SECONDS_PER_SAMPLE_FALLBACK = 1.0
 
 @dataclass
 class BatteryAnalysisBundle:
+    """Container for every battery-analysis table rendered by the dashboard charts."""
     summary: str
     driver_rows: list[list[Any]]
     zone_rows: list[list[Any]]
@@ -25,6 +26,7 @@ class BatteryAnalysisBundle:
 
 
 def _number(value: Any, default: float = 0.0) -> float:
+    """Convert telemetry scalars to finite floats for ERS heuristics."""
     try:
         result = float(value)
         return result if math.isfinite(result) else default
@@ -33,6 +35,7 @@ def _number(value: Any, default: float = 0.0) -> float:
 
 
 def _integer(value: Any, default: int = 0) -> int:
+    """Round telemetry scalars to integers for lap, position, and DRS decisions."""
     try:
         return int(round(float(value)))
     except (TypeError, ValueError):
@@ -40,6 +43,7 @@ def _integer(value: Any, default: int = 0) -> int:
 
 
 def _balance_label(net_mj: float) -> str:
+    """Classify net ERS balance as deploy-heavy, harvest-heavy, or balanced."""
     if net_mj > 0.35:
         return "DEPLOYMENT HEAVY"
     if net_mj < -0.35:
@@ -48,6 +52,7 @@ def _balance_label(net_mj: float) -> str:
 
 
 def _risk_label(balance_mj: float, harvest_mj: float, deploy_mj: float, samples: int) -> str:
+    """Assign deployment risk from energy imbalance and sample confidence."""
     if samples < 8:
         return "LOW CONFIDENCE"
     if balance_mj > 1.0 and deploy_mj > harvest_mj * 1.25:
@@ -58,6 +63,7 @@ def _risk_label(balance_mj: float, harvest_mj: float, deploy_mj: float, samples:
 
 
 def _soc_proxy(harvest_mj: float, deploy_mj: float, samples: int) -> tuple[float, str]:
+    """Estimate bounded battery reserve from inferred harvest and deployment totals."""
     if samples < 4:
         return 50.0, "LOW"
     # Public feeds do not expose SOC; this is a bounded race-window reserve estimate.
@@ -68,6 +74,7 @@ def _soc_proxy(harvest_mj: float, deploy_mj: float, samples: int) -> tuple[float
 
 
 def _deployment_call(balance_mj: float, risk: str) -> str:
+    """Translate net energy risk into a pit-wall ERS recommendation."""
     if risk == "HIGH":
         return "Save exits before next attack zone"
     if balance_mj < -0.6:
@@ -78,6 +85,7 @@ def _deployment_call(balance_mj: float, risk: str) -> str:
 
 
 def _readiness_label(soc: float, attack_pressure: float, defense_pressure: float) -> str:
+    """Label overtake-readiness from reserve proxy and battle pressure."""
     pressure = max(attack_pressure, defense_pressure)
     if soc >= 62 and pressure >= 0.45:
         return "READY"
@@ -89,6 +97,7 @@ def _readiness_label(soc: float, attack_pressure: float, defense_pressure: float
 
 
 def _policy_projection(action: str, soc: float, attack: float, defense: float, net_mj: float) -> tuple[float, str]:
+    """Score a candidate ERS action against reserve, pressure, and energy balance."""
     pressure = max(attack, defense)
     if action == "SPEND":
         gain = 0.34 * pressure + 0.08 * max(0.0, soc - 50.0) / 50.0 - max(0.0, net_mj) * 0.05
@@ -108,6 +117,7 @@ def _action_policy(
     harvest_mj: float,
     deploy_mj: float,
 ) -> tuple[list[Any], dict[str, float | str]]:
+    """Choose spend, hold, or harvest from current battle gaps and control inputs."""
     position = _integer(current.get("position"), 99)
     distance = _number(current.get("dist"))
     speed = _number(current.get("speed"))
@@ -167,6 +177,7 @@ def _action_policy(
 
 
 def _phase(deploy_kw: float, harvest_kw: float) -> str:
+    """Classify a telemetry sample as deploy, harvest, or neutral from inferred power."""
     if deploy_kw >= 120:
         return "DEPLOY"
     if harvest_kw >= 100:
@@ -175,6 +186,7 @@ def _phase(deploy_kw: float, harvest_kw: float) -> str:
 
 
 def _estimate_power(previous: dict[str, Any] | None, current: dict[str, Any], dt: float) -> tuple[float, float, float]:
+    """Infer MGU-K deploy and harvest power from speed delta, throttle, brake, and DRS."""
     speed = _number(current.get("speed"))
     throttle = _number(current.get("throttle"))
     brake = _number(current.get("brake"))
@@ -200,6 +212,7 @@ def _estimate_power(previous: dict[str, Any] | None, current: dict[str, Any], dt
 
 
 def _lift_coast_cost(speed_kph: float, harvest_kw: float, dt: float) -> tuple[float, float]:
+    """Estimate recoverable energy and time loss for a short lift-and-coast action."""
     recover_mj = min(MAX_MGU_K_KW_2026, max(55.0, harvest_kw + 42.0)) * min(2.2, max(0.6, dt)) / 1000.0
     time_loss_s = 0.025 + max(0.0, speed_kph - 150.0) / 1000.0
     return recover_mj, time_loss_s

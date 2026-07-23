@@ -28,6 +28,7 @@ class SettingsManager:
         return cls._instance
 
     def __init__(self):
+        """Load persisted app settings once for the singleton settings manager."""
         if self._initialized:
             return
 

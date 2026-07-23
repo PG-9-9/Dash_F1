@@ -8,6 +8,7 @@ from typing import Any
 
 @dataclass
 class ReplayDataset:
+    """Complete in-memory dataset required by the headless replay controller."""
     frames: list[dict[str, Any]]
     track_statuses: list[dict[str, Any]]
     race_control_messages: list[dict[str, Any]]
