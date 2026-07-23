@@ -19,9 +19,11 @@ The data-access foundation is:
 
 The present codebase is focused on a browser dashboard with a FastAPI replay
 server, modular intelligence methods, and experimental AI/optimization work.
-Approximately 20% was developed through AI-assisted vibe coding to improve
-implementation efficiency. This disclosure credits the development process
-without replacing the responsibility to review, test, and document the result.
+AI-assisted coding was used to improve implementation efficiency. Assisted
+changes remained under direct supervision within their owning modules, were
+manually reviewed, and were validated through manually authored test cases
+appropriate to their behavior. This disclosure credits the development process
+without replacing responsibility for engineering judgment and validation.
 
 Neither upstream project nor any cited researcher endorses this project.
 

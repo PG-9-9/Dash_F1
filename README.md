@@ -1,5 +1,9 @@
 # F1 Race Intelligence
 
+<p align="center">
+  <img src="images/logo/logo.png" alt="F1 Race Intelligence logo" width="760">
+</p>
+
 F1 Race Intelligence is a server-first Formula 1 replay and decision-support
 dashboard. It turns publicly available timing, telemetry, weather, track-status,
 and race-control data into a synchronized track replay, live classification,
@@ -25,11 +29,11 @@ finish simulation, telemetry-derived tyre and battle models, constrained
 strategy generation, and an experimental hybrid-energy environment for the
 Battery tab.
 
-Approximately 20% of this project was vibe-coded with AI assistance to improve
-delivery speed and iteration efficiency. The project structure, feature
-direction, model choices, integration, and validation remain deliberate
-engineering work. This disclosure is included to be transparent about how the
-software was produced.
+AI-assisted coding was used to improve implementation efficiency. Each assisted
+change remained under direct supervision within its owning module, was manually
+reviewed, and was validated with manually authored test cases appropriate to its
+behavior. The project structure, feature direction, model choices, integration,
+and validation remain deliberate engineering work.
 
 ![F1 Race Intelligence overview with live track replay, classification, battle monitoring, and telemetry](images/dashboard/dashboard-overview.png)
 

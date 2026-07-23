@@ -52,7 +52,8 @@ developed over several months into a modular browser dashboard with a separate
 server, replay engine, intelligence layer, and lightweight client.
 
 The author is an AI Engineer and introduced model-based features where the
-public data supports meaningful experimentation. Approximately 20% of the
-project was developed with AI-assisted vibe coding for implementation
-efficiency. See [Research and Credits](Research-and-Credits.md) for full
+public data supports meaningful experimentation. AI-assisted coding improved
+implementation efficiency, while every assisted change remained under
+module-level supervision, manual review, and manually authored behavioral test
+coverage. See [Research and Credits](Research-and-Credits.md) for full
 attribution.
