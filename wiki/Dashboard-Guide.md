@@ -4,6 +4,8 @@ The dashboard is a single-page application with seven functional tabs. The
 server owns the replay and analysis state, so multiple browser clients can
 observe the same running session.
 
+![Overview tab showing the live circuit replay, timing tower, battle monitor, and selected-driver telemetry](../images/dashboard/dashboard-overview.png)
+
 ## Global Controls
 
 The top bar is available on every tab.

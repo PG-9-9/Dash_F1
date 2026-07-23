@@ -37,6 +37,10 @@ still_frame.png
 *.jpeg
 *.gif
 
+# Versioned documentation and UI assets
+!images/
+!images/**
+
 # Build/runtime artifacts
 dist/
 build/

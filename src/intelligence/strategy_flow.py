@@ -1,9 +1,8 @@
-"""Flow-based construction of diverse, high-reward race strategies.
+"""Reward-weighted construction of diverse, high-value race strategies.
 
-This is a lightweight GFlowNet-style inference engine.  A strategy is built as
-a sequence of actions, terminal strategies receive a positive reward, and the
-next-action policy is proportional to estimated downstream reward.  The result
-is a distribution of useful strategies instead of a single brittle optimum.
+A strategy is built as a sequence of actions, terminal strategies receive a
+positive reward, and candidate actions are sampled from race-shaped priors. The
+result is a varied set of useful strategies instead of one brittle optimum.
 """
 
 from __future__ import annotations

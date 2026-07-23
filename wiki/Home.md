@@ -21,7 +21,7 @@ The project combines three concerns:
 | [Dashboard Guide](Dashboard-Guide.md) | Every tab, control, chart, table, and user workflow |
 | [Data and Replay Pipeline](Data-and-Replay-Pipeline.md) | FastF1 ingestion, interpolation, cache, frames, and streaming |
 | [Race Intelligence](Race-Intelligence.md) | Battles, pit cycles, tyres, Safety Car, comparison, and prediction |
-| [Strategy Flow](Strategy-Flow.md) | Constrained strategy generation and GFlowNet/SynFlowNet inspiration |
+| [Strategy Flow](Strategy-Flow.md) | Constrained strategy generation, reward modeling, and diversity selection |
 | [Battery Intelligence](Battery-Intelligence.md) | Exact ERS proxy formulas, policy scores, SOC, simulator, and RL environment |
 | [Architecture](Architecture.md) | Component boundaries and runtime ownership |
 | [API Reference](API-Reference.md) | REST and WebSocket contracts |

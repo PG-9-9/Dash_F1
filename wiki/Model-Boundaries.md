@@ -78,7 +78,7 @@ races with reliability metrics.
 
 Strategy Flow evaluates simplified pace, degradation, traffic, weather, and pit
 loss. It does not model every sporting regulation, incident, team objective, or
-competitor reaction. It is not a trained GFlowNet.
+competitor reaction. Its coefficients and sampling rules are project-defined.
 
 ## Battery Boundaries
 

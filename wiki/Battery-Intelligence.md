@@ -4,6 +4,8 @@ The Battery tab explores hybrid-energy management using channels available in
 public telemetry. It combines physics-shaped heuristics, local action scoring,
 a short-horizon value model, and a Gym-like rollout environment.
 
+![Battery tab showing deployment, SOC readiness, track zones, action scores, recovery opportunity, simulator value, and policy comparison](../images/dashboard/battery-intelligence.png)
+
 ## What Is Measured and What Is Inferred
 
 Public telemetry provides speed, throttle, brake, DRS state, position, lap, and

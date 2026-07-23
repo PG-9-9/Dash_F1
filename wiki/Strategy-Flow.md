@@ -1,42 +1,15 @@
-# Strategy Flow and SynFlowNet Inspiration
+# Strategy Flow
 
 The Strategy tab generates several useful race plans instead of returning one
-apparently certain answer. That design is inspired by Generative Flow Networks
-(GFlowNets) and, more specifically, SynFlowNet's idea that useful candidates
-should be built through valid forward actions.
+apparently certain answer. `StrategyFlowEngine` builds feasible pit and pace
+sequences, evaluates their modeled race outcomes, and keeps a varied set of
+high-value alternatives.
 
-## Research Lineage
+![Strategy tab showing ranked race plans and reward compared with modeled risk](../images/dashboard/strategy-analysis.png)
 
-[Flow Network based Generative Models for Non-Iterative Diverse Candidate
-Generation](https://arxiv.org/abs/2106.04399) introduced GFlowNets as a way to
-sample diverse terminal objects approximately in proportion to positive reward.
-That objective is useful when several high-value solutions matter more than one
-mode-seeking optimum.
+## Model Approach
 
-[SynFlowNet: Design of Diverse and Novel Molecules with Synthesis
-Constraints](https://arxiv.org/abs/2405.01155) constrains molecular generation
-to forward synthesis reactions and available reactants. Its domain is molecular
-design, not motorsport. The transferable idea is to define an action space in
-which generated candidates are feasible by construction.
-
-This project maps that idea to race strategy:
-
-| SynFlowNet concept | Strategy adaptation |
-| --- | --- |
-| Partial molecule | Partial race plan |
-| Forward reaction | Add a pit stop or pace instruction |
-| Synthesis constraints | Lap order, stint spacing, compounds, weather, remaining distance |
-| Terminal molecule | Complete strategy trajectory |
-| Molecular reward | Time, position, traffic, weather, tyre, and risk reward |
-| Diverse samples | Several distinct high-reward pit/pace plans |
-
-## Important Status
-
-`StrategyFlowEngine` is a lightweight GFlowNet-style inference engine. It does
-not train a neural forward policy, learn a backward policy, optimize trajectory
-balance, or claim to reproduce SynFlowNet.
-
-It currently:
+The strategy engine:
 
 - Samples constrained strategy trajectories from hand-designed,
   reward-shaped priors.
@@ -44,8 +17,8 @@ It currently:
 - Ranks trajectories by positive reward.
 - Filters repeated action profiles to preserve diversity.
 
-Calling it GFlowNet-inspired is accurate. Calling it a trained GFlowNet or
-SynFlowNet model would not be.
+It is an interpretable stochastic search and simulation method. It does not
+train a neural policy, and its output is not a guaranteed global optimum.
 
 ## Strategy State
 
@@ -219,19 +192,3 @@ and pace modes even when their expected outcomes are close.
 
 Reward is meaningful for comparison within the same replay context. It is not a
 probability and should not be compared directly across unrelated sessions.
-
-## Path to a Trained GFlowNet
-
-A full implementation would require:
-
-1. A formal state graph with legal forward and backward transitions.
-2. A learned forward policy and, depending on the objective, backward policy.
-3. Trajectory-balance, detailed-balance, or flow-matching loss.
-4. Offline historical trajectories plus a validated race simulator/oracle.
-5. Terminal rewards calibrated against counterfactual race outcomes.
-6. Constraint tests for tyre rules, session format, weather, Safety Car timing,
-   pit-lane closure, and red flags.
-7. Held-out evaluation of reward, diversity, feasibility, and calibration.
-
-The current constrained sampler is useful before that training infrastructure
-exists because its assumptions remain inspectable.

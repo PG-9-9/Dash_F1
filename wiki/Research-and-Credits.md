@@ -37,39 +37,6 @@ FastF1 supplies the source-facing API and domain data structures. This project
 adds session preparation, replay synchronization, web delivery, and its own
 analysis methods.
 
-## Strategy Generation Research
-
-### GFlowNets
-
-Emmanuel Bengio, Moksh Jain, Maksym Korablyov, Doina Precup, and Yoshua Bengio,
-[Flow Network based Generative Models for Non-Iterative Diverse Candidate
-Generation](https://arxiv.org/abs/2106.04399), 2021.
-
-Used as conceptual inspiration for sampling a diverse set of high-reward
-terminal strategies instead of selecting only one optimum.
-
-Yoshua Bengio, Salem Lahlou, Tristan Deleu, Edward J. Hu, Mo Tiwari, and
-Emmanuel Bengio,
-[GFlowNet Foundations](https://arxiv.org/abs/2111.09266), 2021.
-
-Provides the broader theoretical framing for reward-proportional generation of
-composite objects.
-
-### SynFlowNet
-
-Miruna Cretu, Charles Harris, Ilia Igashov, Arne Schneuing, Marwin Segler, Bruno
-Correia, Julien Roy, Emmanuel Bengio, and Pietro Lio,
-[SynFlowNet: Design of Diverse and Novel Molecules with Synthesis
-Constraints](https://arxiv.org/abs/2405.01155), 2024.
-
-SynFlowNet uses valid forward chemical reactions as generative constraints. The
-Strategy Flow module adapts the design principle, not the molecular model:
-strategies are built from valid forward pit/pace actions with lap, stint,
-compound, and weather constraints.
-
-The included Strategy Flow engine is not a trained GFlowNet or SynFlowNet.
-Implementation details are in [Strategy Flow](Strategy-Flow.md).
-
 ## Hybrid Energy Management Research
 
 ### ECMS
@@ -171,6 +138,6 @@ When publishing results produced with this project:
 2. Credit FastF1 as the data-access library.
 3. Identify the source season, event, session, and replay point.
 4. State whether a number is sourced, derived, inferred, or simulated.
-5. Cite the relevant GFlowNet, ECMS, RL, F1 optimization, or FIA source when
-   discussing those methods or constraints.
+5. Cite the relevant ECMS, RL, F1 optimization, or FIA source when discussing
+   those methods or constraints.
 6. Include the limitations from [Model Boundaries](Model-Boundaries.md).
