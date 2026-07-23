@@ -1,6 +1,7 @@
 # Virtual environments
 venv/
 .venv/
+.venv-server/
 env/
 
 # Python caches
@@ -12,11 +13,37 @@ __pycache__/
 
 # Local FastF1/cache/generated data
 .fastf1-cache
+.fastf1-cache/
 computed_data/
+*.pkl
+*.pickle
+*.parquet
+*.feather
+*.sqlite
+*.sqlite3
+*.db
+*.csv
+*.json.gz
 
 # Generated media/output
 output_animation.mp4
 still_frame.png
+*.mp4
+*.mov
+*.avi
+*.webm
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Build/runtime artifacts
+dist/
+build/
+site/
+coverage/
+htmlcov/
+*.log
 
 # OS / IDE files
 .DS_Store

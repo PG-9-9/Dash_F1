@@ -4,42 +4,28 @@ import pytest
 
 
 MODULES = [
-    "src.bayesian_tyre_model",
-    "src.cli.race_selection",
+    "src.data.cache_session",
+    "src.data.race_telemetry",
+    "src.data.safety_car",
     "src.f1_data",
-    "src.gui.insights_menu",
-    "src.gui.pit_wall_window",
-    "src.gui.pit_wall_window_template",
-    "src.gui.race_selection",
-    "src.gui.settings_dialog",
-    "src.insights.driver_telemetry_window",
-    "src.insights.example_pit_wall_window",
-    "src.insights.race_control_feed_window",
-    "src.insights.telemetry_stream_viewer",
-    "src.insights.track_position_window",
-    "src.insights.tyre_strategy_window",
-    "src.interfaces.qualifying",
-    "src.interfaces.race_replay",
+    "src.intelligence.battery_deployment",
+    "src.intelligence.battery_rl_environment",
+    "src.intelligence.race_intelligence",
+    "src.intelligence.strategy_flow",
     "src.lib.season",
     "src.lib.settings",
     "src.lib.time",
     "src.lib.tyres",
-    "src.run_session",
-    "src.services.stream",
-    "src.tyre_degradation_integration",
-    "src.ui_components",
+    "src.server.replay",
+    "src.server.app",
 ]
 
 OPTIONAL_DEPENDENCIES = {
-    "arcade",
     "fastf1",
-    "matplotlib",
     "numpy",
     "pandas",
-    "pyglet",
-    "PySide6",
-    "questionary",
-    "rich",
+    "scipy",
+    "fastapi",
 }
 
 

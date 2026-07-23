@@ -1,0 +1,17 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      F1_YEAR: "2025"
+      F1_ROUND: "12"
+      F1_SESSION: "R"
+    volumes:
+      - fastf1-cache:/app/.fastf1-cache
+      - computed-data:/app/computed_data
+    restart: unless-stopped
+
+volumes:
+  fastf1-cache:
+  computed-data:

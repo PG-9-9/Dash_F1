@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111214">
+  <title>F1 Race Intelligence</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">F1</span>
+        <div><strong>Race Intelligence</strong><small>Replay control room</small></div>
+      </div>
+      <nav class="tab-nav" aria-label="Dashboard views">
+        <button class="nav-tab active" data-tab="overview"><span>Overview</span></button>
+        <button class="nav-tab" data-tab="strategy"><span>Strategy</span></button>
+        <button class="nav-tab" data-tab="pace"><span>Pace &amp; Tyres</span></button>
+        <button class="nav-tab" data-tab="operations"><span>Operations</span></button>
+        <button class="nav-tab" data-tab="drivers"><span>Drivers</span></button>
+        <button class="nav-tab" data-tab="prediction"><span>Prediction</span></button>
+        <button class="nav-tab" data-tab="battery"><span>Battery</span></button>
+      </nav>
+      <div class="connection-block">
+        <span class="connection-dot" id="connectionDot"></span>
+        <div><strong id="connectionText">Connecting</strong><small id="serverClock">Server stream</small></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="session-heading">
+          <strong id="eventName">Loading session</strong>
+          <span id="sessionMeta">FastF1 telemetry is being prepared</span>
+        </div>
+        <div class="playback-controls" aria-label="Replay controls">
+          <button class="icon-button" id="restartButton" title="Restart replay" aria-label="Restart replay"><span>R</span></button>
+          <button class="icon-button primary" id="playButton" title="Play or pause" aria-label="Play or pause"><span>&gt;</span></button>
+          <button class="icon-button" data-step="-10" title="Back 10 seconds" aria-label="Back 10 seconds"><span>-10</span></button>
+          <button class="icon-button" data-step="10" title="Forward 10 seconds" aria-label="Forward 10 seconds"><span>+10</span></button>
+          <select id="speedSelect" aria-label="Playback speed"></select>
+        </div>
+        <div class="race-clock"><strong id="raceTime">00:00:00</strong><span id="lapCounter">Lap 0 / 0</span></div>
+      </header>
+
+      <div class="timeline-band">
+        <input id="timeline" type="range" min="0" max="1000" value="0" aria-label="Replay timeline">
+        <span id="timelinePercent">0%</span>
+      </div>
+
+      <div id="loadingState" class="loading-state">
+        <div class="loading-line"></div>
+        <strong>Preparing race telemetry</strong>
+        <span id="loadingMessage">The first load downloads and computes the session; cached starts are much faster.</span>
+        <div class="loading-meter" aria-hidden="true"><span id="loadingMeterFill"></span></div>
+        <small id="loadingPercent">0%</small>
+      </div>
+
+      <section class="tab-panel active" id="tab-overview" aria-labelledby="Overview">
+        <form class="session-selector" id="sessionSelector">
+          <div class="session-selector-title"><span class="eyebrow">Replay dataset</span><strong>Session selection</strong></div>
+          <label>Year<select id="yearSelect" aria-label="Championship year"></select></label>
+          <label>Circuit<select id="circuitSelect" aria-label="Circuit"></select></label>
+          <label>Session<select id="sessionTypeSelect" aria-label="Race session type"></select></label>
+          <button class="command-button" id="loadSessionButton" type="submit"><span>Load session</span></button>
+          <span class="session-selector-status" id="sessionSelectorStatus" role="status">Current replay</span>
+        </form>
+
+        <div class="kpi-strip">
+          <div class="kpi"><span>Leader</span><strong id="kpiLeader">-</strong><small id="kpiLeaderTyre">No data</small></div>
+          <div class="kpi"><span>Track status</span><strong id="kpiStatus">-</strong><small id="kpiStatusNote">Race control</small></div>
+          <div class="kpi"><span>Active battles</span><strong id="kpiBattles">0</strong><small>Within modeled range</small></div>
+          <div class="kpi"><span>Track temperature</span><strong id="kpiTrackTemp">-</strong><small id="kpiWeather">Weather unavailable</small></div>
+        </div>
+
+        <div class="overview-grid">
+          <section class="workspace track-workspace">
+            <div class="section-heading"><div><span class="eyebrow">Live replay</span><h2>Track position</h2></div><span class="status-pill" id="trackStatusPill">GREEN</span></div>
+            <canvas id="trackCanvas" width="900" height="560" aria-label="Live track position map"></canvas>
+          </section>
+          <section class="workspace leaderboard-workspace">
+            <div class="section-heading"><div><span class="eyebrow">Timing tower</span><h2>Classification</h2></div><span id="driverCount">0 drivers</span></div>
+            <div class="table-scroll compact"><table><thead><tr><th>Pos</th><th>Driver</th><th>Tyre</th><th>Age</th><th>Speed</th><th>Gap</th></tr></thead><tbody id="leaderboardBody"></tbody></table></div>
+          </section>
+          <section class="workspace battle-workspace">
+            <div class="section-heading"><div><span class="eyebrow">On-track action</span><h2>Battle monitor</h2></div><span id="overtakeCount">0 passes</span></div>
+            <div class="table-scroll"><table id="battleTable"></table></div>
+          </section>
+          <section class="workspace telemetry-workspace">
+            <div class="section-heading"><div><span class="eyebrow">Selected driver</span><h2>Live telemetry</h2></div><select class="driver-select" id="overviewDriver"></select></div>
+            <div class="telemetry-values">
+              <div><span>Speed</span><strong id="liveSpeed">-</strong></div><div><span>Gear</span><strong id="liveGear">-</strong></div>
+              <div><span>Throttle</span><strong id="liveThrottle">-</strong></div><div><span>Brake</span><strong id="liveBrake">-</strong></div>
+              <div><span>DRS</span><strong id="liveDrs">-</strong></div><div><span>Tyre life</span><strong id="liveTyre">-</strong></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-strategy">
+        <div class="view-toolbar"><div><span class="eyebrow">Decision support</span><h1>Strategy flow</h1></div><label>Driver<select class="driver-select" id="strategyDriver"></select></label><label class="risk-control">Risk tolerance<input id="riskSlider" type="range" min="0" max="100" value="50"><output id="riskValue">50%</output></label><button id="refreshStrategy" class="command-button">Recalculate</button></div>
+        <p class="model-summary" id="strategySummary">Waiting for strategy model.</p>
+        <div class="two-column wide-left">
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Ranked terminal flows</span><h2>Recommended trajectories</h2></div></div><div class="table-scroll"><table id="strategyTable"></table></div></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Reward distribution</span><h2>Flow reward vs scaled risk</h2></div></div><canvas class="chart-canvas" id="strategyChart" width="520" height="360"></canvas></section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-pace">
+        <div class="view-toolbar"><div><span class="eyebrow">Performance engineering</span><h1>Pace &amp; tyre model</h1></div><label>Driver<select class="driver-select" id="paceDriver"></select></label></div>
+        <div class="two-column">
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Clean laps</span><h2>Lap time by lap</h2></div></div><canvas class="chart-canvas" id="paceChart" width="720" height="380"></canvas></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Compound behavior</span><h2>Degradation seconds per lap</h2></div></div><canvas class="chart-canvas" id="tyreChart" width="620" height="380"></canvas></section>
+        </div>
+        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Stint health</span><h2>Tyre performance table</h2></div></div><div class="table-scroll"><table id="tyreTable"></table></div></section>
+      </section>
+
+      <section class="tab-panel" id="tab-operations">
+        <div class="view-toolbar"><div><span class="eyebrow">Pit wall</span><h1>Race operations</h1></div></div>
+        <div class="operations-grid">
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Pit cycle</span><h2>Undercut / overcut</h2></div></div><p class="model-summary" id="undercutSummary"></p><div class="table-scroll"><table id="undercutTable"></table></div></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Neutralization</span><h2>Safety Car calls</h2></div></div><p class="model-summary" id="safetySummary"></p><div class="table-scroll"><table id="safetyTable"></table></div></section>
+          <section class="workspace race-control-panel"><div class="section-heading"><div><span class="eyebrow">FIA feed</span><h2>Race control intelligence</h2></div></div><p class="model-summary" id="raceControlSummary"></p><div class="table-scroll"><table id="raceControlTable"></table></div></section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-drivers">
+        <div class="view-toolbar"><div><span class="eyebrow">Head-to-head</span><h1>Driver comparison</h1></div><label>Primary<select class="driver-select" id="comparePrimary"></select></label><span class="versus">VS</span><label>Comparison<select class="driver-select" id="compareSecondary"></select></label></div>
+        <p class="model-summary" id="comparisonSummary">Select two drivers.</p>
+        <div class="two-column">
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Measured advantage</span><h2>Performance matrix</h2></div></div><div class="table-scroll"><table id="comparisonTable"></table></div></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Position trace</span><h2>Race evolution</h2></div></div><canvas class="chart-canvas" id="positionChart" width="620" height="380"></canvas></section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-prediction">
+        <div class="view-toolbar"><div><span class="eyebrow">Live model</span><h1>Finish prediction</h1></div></div>
+        <p class="model-summary" id="predictionSummary">Waiting for prediction model.</p>
+        <div class="two-column wide-left">
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Probability</span><h2>Win % vs podium %</h2></div></div><canvas class="chart-canvas tall" id="predictionChart" width="760" height="440"></canvas></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Expected classification</span><h2>Finish distribution</h2></div></div><div class="table-scroll"><table id="predictionTable"></table></div></section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-battery">
+        <div class="view-toolbar"><div><span class="eyebrow">2026 power unit</span><h1>Battery deployment</h1></div></div>
+        <p class="model-summary" id="batterySummary">Waiting for ERS deployment model.</p>
+        <div class="two-column wide-left">
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">ERS pressure</span><h2>Harvest MJ vs deploy MJ</h2></div></div><canvas class="chart-canvas tall" id="batteryChart" width="760" height="440"></canvas></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Engineering calls</span><h2>Driver battery table</h2></div></div><div class="table-scroll"><table id="batteryTable"></table></div></section>
+        </div>
+        <div class="two-column full-width">
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Reserve model</span><h2>SOC proxy and readiness</h2></div></div><canvas class="chart-canvas" id="batterySocChart" width="700" height="360"></canvas></section>
+          <section class="workspace"><div class="section-heading"><div><span class="eyebrow">Overtake readiness</span><h2>Reserve table</h2></div></div><div class="table-scroll"><table id="batterySocTable"></table></div></section>
+        </div>
+        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Track zones</span><h2>Deploy / harvest opportunities</h2></div></div><div class="table-scroll"><table id="batteryZoneTable"></table></div></section>
+        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Lift and coast</span><h2>Recovery cost model</h2></div></div><div class="table-scroll"><table id="batteryLiftTable"></table></div></section>
+        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">RL/ECMS policy</span><h2>Spend / hold / harvest action scores</h2></div></div><div class="table-scroll"><table id="batteryPolicyTable"></table></div></section>
+        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Simulator policy</span><h2>Short-horizon energy value</h2></div></div><div class="table-scroll"><table id="batterySimulatorTable"></table></div></section>
+        <section class="workspace full-width"><div class="section-heading"><div><span class="eyebrow">Trainable environment</span><h2>RL heuristic vs baselines</h2></div></div><div class="table-scroll"><table id="batteryRlEnvironmentTable"></table></div></section>
+      </section>
+
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
